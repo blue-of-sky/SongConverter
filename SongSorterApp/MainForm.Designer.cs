@@ -50,7 +50,7 @@ partial class MainForm
         txtInstructions.BackColor = SystemColors.Control;
         txtInstructions.TabIndex = 1;
                         txtInstructions.Text = "1. \u597d\u304d\u306a\u6240\u3067\u30b3\u30de\u30f3\u30c9\u30d7\u30ed\u30f3\u30d7\u30c8\u3092\u958b\u3044\u3066\r\n" +
-                                "   git clone --depth 1 -b master https://ese.tjadataba.se/ESE/ESE.git Songs \u3092\u5b9f\u884c\u3057\u307e\u3059\r\n" +
+                                "   git clone https://ese.tjadataba.se/ESE/ESE.git Songs \u3092\u5b9f\u884c\u3057\u307e\u3059\r\n" +
                                 "2. \u4e26\u3073\u66ff\u3048\u30dc\u30bf\u30f3\u3092\u62bc\u3057\u3066\u5148\u307b\u3069\u4f5c\u3063\u305fSongs\u30d5\u30a9\u30eb\u30c0\u3092\u9078\u629e\u3057\u307e\u3059\r\n" +
                                 "3. \u66f2\u3092\u30b3\u30d4\u30fc\u3057\u305f\u3044\u592a\u9f13\u30b7\u30df\u30e5\u306e\u30d5\u30a9\u30eb\u30c0(TaikoNautsやOpenTaikoフ\u30a9\u30eb\u30c0)\u3092\u9078\u629e\u3057\u307e\u3059\r\n" +
                                 "\u3059\u308b\u3068\u66f2\u306e\u9806\u756a\u304c\u672c\u5bb6\u901a\u308a\u306b\u306a\u308a\u307e\u3059";
