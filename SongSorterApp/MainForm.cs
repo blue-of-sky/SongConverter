@@ -422,9 +422,9 @@ public partial class MainForm : Form
             Directory.CreateDirectory(dir);
             var lines = new[]
             {
-                $"#TITLE: {title}",
-                $"#GENRE: {genre}",
-                $"#EXPLANATION: {explanation}",
+                $"#TITLE:{title}",
+                $"#GENRE:{genre}",
+                $"#EXPLANATION:{explanation}",
             };
             File.WriteAllLines(destBox, lines, Encoding.UTF8);
         }
