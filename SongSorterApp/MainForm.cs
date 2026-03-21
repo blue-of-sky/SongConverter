@@ -152,30 +152,45 @@ public partial class MainForm : Form
                     return;
                 }
 
-                var matchedAnyInFolder = false;
-                foreach (var tjaPath in tjaPaths)
+                var tjaCandidates = new List<(string Path, SongDetail Info, string TitleNorm, string SubtitleNorm)>();
+                foreach (var path in tjaPaths)
                 {
-                    var info = ReadSongInfo(tjaPath);
-                    if (info == null) continue;
+                    var info = ReadSongInfo(path);
+                    if (info == null)
+                        continue;
 
-                    var titleNorm = NormalizationUtils.NormalizeTitle(info.Title);
-                    var subtitleNorm = NormalizationUtils.NormalizeSubtitle(info.Subtitle);
+                    tjaCandidates.Add((
+                        path,
+                        info,
+                        NormalizationUtils.NormalizeTitle(info.Title),
+                        NormalizationUtils.NormalizeSubtitle(info.Subtitle)
+                    ));
+                }
 
-                    var matchedThisTja = false;
-                    foreach (var target in preferredMappings)
+                if (tjaCandidates.Count == 0)
+                {
+                    Interlocked.Increment(ref totalUnmatched);
+                    unmatchedLogs.Add($"[NO_VALID_TJA] {songDir}");
+                    return;
+                }
+
+                var matchedAnyInFolder = false;
+                foreach (var target in preferredMappings)
+                {
+                    if (!exportGroups.TryGetValue(target.Export, out var songsByTitle))
+                        continue;
+
+                    foreach (var candidate in tjaCandidates)
                     {
-                        if (!exportGroups.TryGetValue(target.Export, out var songsByTitle))
-                            continue;
-                        
-                        if (!songsByTitle.TryGetValue(titleNorm, out var versions))
+                        if (!songsByTitle.TryGetValue(candidate.TitleNorm, out var versions))
                             continue;
 
                         // マッチングロジック (完全一致 -> 部分一致 -> タイトルのみ一致)
-                        var match = versions.FirstOrDefault(v => v.SubtitleNorm == subtitleNorm);
-                        if (match.Index == 0 && !string.IsNullOrEmpty(subtitleNorm))
+                        var match = versions.FirstOrDefault(v => v.SubtitleNorm == candidate.SubtitleNorm);
+                        if (match.Index == 0 && !string.IsNullOrEmpty(candidate.SubtitleNorm))
                         {
                             match = versions.FirstOrDefault(v => 
-                                v.SubtitleNorm.Contains(subtitleNorm) || subtitleNorm.Contains(v.SubtitleNorm));
+                                v.SubtitleNorm.Contains(candidate.SubtitleNorm) || candidate.SubtitleNorm.Contains(v.SubtitleNorm));
                         }
                         if (match.Index == 0 && versions.Count == 1)
                         {
@@ -183,35 +198,27 @@ public partial class MainForm : Form
                         }
 
                         if (match.Index == 0) continue;
-                        matchedThisTja = true;
+                        matchedAnyInFolder = true;
 
                         // フォルダ名生成
                         var num = match.Index.ToString("000");
-                        var tjaBaseName = Path.GetFileNameWithoutExtension(tjaPath);
+                        var tjaBaseName = Path.GetFileNameWithoutExtension(candidate.Path);
                         var safeFolderName = SanitizeFolderName(tjaBaseName);
                         var newFolderName = $"{num} {safeFolderName}";
                         var dstSongDir = Path.Combine(songsRoot, target.Dest, newFolderName);
-                        
-                        matchedAnyInFolder = true;
-                        
+
                         // ディレクトリの有無チェックと作成
                         var dstGenreDir = Path.Combine(songsRoot, target.Dest);
                         if (Directory.Exists(dstSongDir)) {
                             Interlocked.Increment(ref totalSkipped);
-                            continue;
+                            break;
                         }
 
                         EnsureBoxDef(dstGenreDir, target.BoxTitle, target.BoxGenre, target.BoxExplanation);
 
-                        CopyDirectory(songDir, dstSongDir, tjaPath);
+                        CopyDirectory(songDir, dstSongDir, candidate.Path);
                         Interlocked.Increment(ref totalCopied);
-                        break; // このTJAのマッチングは完了
-                    }
-
-                    if (matchedThisTja)
-                    {
-                        // 1曲フォルダにつき1つのTJAだけを採用して終了する
-                        break;
+                        break; // このカテゴリへのコピーは完了
                     }
                 }
 
@@ -220,8 +227,8 @@ public partial class MainForm : Form
                     Interlocked.Increment(ref totalUnmatched);
                     
                     // 最も近い候補を探してログに残す（デバッグ用）
-                    var info = ReadSongInfo(tjaPaths.First());
-                    var titleNorm = info != null ? NormalizationUtils.NormalizeTitle(info.Title) : "??";
+                    var first = tjaCandidates[0];
+                    var titleNorm = first.TitleNorm;
                     var candidates = exportGroups.Values
                         .SelectMany(g => g.TryGetValue(titleNorm, out var v) ? v : Enumerable.Empty<(string Sub, int Idx)>())
                         .Select(v => v.Sub)
@@ -229,7 +236,7 @@ public partial class MainForm : Form
 
                     if (candidates.Count > 0)
                     {
-                        var tjaSub = NormalizationUtils.NormalizeSubtitle(info?.Subtitle ?? "");
+                        var tjaSub = first.SubtitleNorm;
                         unmatchedLogs.Add($"[SUBTITLE_MISMATCH] {songDir} (タイトル一致: [{titleNorm}] \n Web側候補: {string.Join(", ", candidates.Select(c => $"[{c}] (Hex: {ToHex(c)})"))} \n TJA側: [{tjaSub}] (Hex: {ToHex(tjaSub)}))");
                     }
                     else
