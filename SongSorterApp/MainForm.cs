@@ -363,25 +363,49 @@ public partial class MainForm : Form
                         var titleJaForFolder = candidate.Info.FolderTitle;
                         if (string.IsNullOrWhiteSpace(titleJaForFolder))
                             titleJaForFolder = Path.GetFileNameWithoutExtension(candidate.Path);
-                        var safeFolderName = SanitizeFolderName(titleJaForFolder);
-                        var newFolderName = $"{num} {safeFolderName}";
-                        var dstSongDir = Path.Combine(songsRoot, target.Dest, newFolderName);
+                        var dstGenreDir = Path.Combine(songsRoot, target.Dest);
+                        var folderNameCandidates = BuildFolderNameCandidates(
+                            num,
+                            titleJaForFolder,
+                            candidate.Info.Subtitle,
+                            candidate.Path);
+                        string? dstSongDir = null;
+                        var hadClaimConflict = false;
+                        var hadExistsConflict = false;
 
                         // 競合回避: 同一コピー先は先着1スレッドだけ処理
-                        if (!copyPathClaims.TryAdd(dstSongDir, 0))
+                        foreach (var folderName in folderNameCandidates)
                         {
-                            Interlocked.Increment(ref totalSkipped);
-                            perSongLogs.Add($"skip_claimed\ttarget={target.Dest}\texport={target.Export}\tindex={num}\tdst={dstSongDir}\ttja={candidate.Path}");
+                            var dstCandidate = Path.Combine(dstGenreDir, folderName);
+                            if (!copyPathClaims.TryAdd(dstCandidate, 0))
+                            {
+                                hadClaimConflict = true;
+                                perSongLogs.Add($"dst_claim_conflict\ttarget={target.Dest}\texport={target.Export}\tindex={num}\tdst={dstCandidate}\ttja={candidate.Path}");
+                                continue;
+                            }
+
+                            if (Directory.Exists(dstCandidate))
+                            {
+                                hadExistsConflict = true;
+                                perSongLogs.Add($"dst_exists_conflict\ttarget={target.Dest}\texport={target.Export}\tindex={num}\tdst={dstCandidate}\ttja={candidate.Path}");
+                                continue;
+                            }
+
+                            dstSongDir = dstCandidate;
                             break;
                         }
 
                         // ディレクトリの有無チェックと作成
-                        var dstGenreDir = Path.Combine(songsRoot, target.Dest);
-                        if (Directory.Exists(dstSongDir))
+                        if (dstSongDir == null)
                         {
                             Interlocked.Increment(ref totalSkipped);
-                            perSongLogs.Add($"skip_exists\ttarget={target.Dest}\texport={target.Export}\tindex={num}\tdst={dstSongDir}\ttja={candidate.Path}");
-                            break;
+                            if (hadExistsConflict)
+                                perSongLogs.Add($"skip_exists\ttarget={target.Dest}\texport={target.Export}\tindex={num}\ttja={candidate.Path}");
+                            else if (hadClaimConflict)
+                                perSongLogs.Add($"skip_claimed\ttarget={target.Dest}\texport={target.Export}\tindex={num}\ttja={candidate.Path}");
+                            else
+                                perSongLogs.Add($"skip_no_destination\ttarget={target.Dest}\texport={target.Export}\tindex={num}\ttja={candidate.Path}");
+                            continue;
                         }
 
                         EnsureBoxDef(dstGenreDir, target.BoxTitle, target.BoxGenre, target.BoxExplanation);
@@ -389,7 +413,7 @@ public partial class MainForm : Form
                         CopyDirectory(songDir, dstSongDir, candidate.Path);
                         Interlocked.Increment(ref totalCopied);
                         perSongLogs.Add($"copy\ttarget={target.Dest}\texport={target.Export}\tindex={num}\tdst={dstSongDir}\ttja={candidate.Path}");
-                        break; // このカテゴリへのコピーは完了
+                        continue;
                     }
                 }
 
@@ -782,6 +806,45 @@ public partial class MainForm : Form
 
         var result = sb.ToString().Trim().TrimEnd('.');
         return string.IsNullOrWhiteSpace(result) ? "NoName" : result;
+    }
+
+    static string[] BuildFolderNameCandidates(string num, string titleForFolder, string subtitle, string tjaPath)
+    {
+        var baseTitle = SanitizeFolderName(titleForFolder);
+        var candidates = new List<string>();
+        var seen = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+
+        void AddCandidate(string rawName)
+        {
+            var cleaned = SanitizeFolderName(rawName);
+            if (seen.Add(cleaned))
+                candidates.Add(cleaned);
+        }
+
+        AddCandidate($"{num} {baseTitle}");
+
+        var subtitlePart = NormalizeSubtitleForFolderName(subtitle);
+        if (!string.IsNullOrWhiteSpace(subtitlePart))
+            AddCandidate($"{num} {baseTitle} {subtitlePart}");
+
+        var tjaName = Path.GetFileNameWithoutExtension(tjaPath);
+        if (!string.IsNullOrWhiteSpace(tjaName))
+            AddCandidate($"{num} {baseTitle} [{tjaName}]");
+
+        for (var i = 2; i <= 9; i++)
+            AddCandidate($"{num} {baseTitle} ({i})");
+
+        return candidates.ToArray();
+    }
+
+    static string NormalizeSubtitleForFolderName(string subtitle)
+    {
+        if (string.IsNullOrWhiteSpace(subtitle))
+            return string.Empty;
+
+        var work = subtitle.Trim();
+        work = work.TrimStart('-', '+', '\uFF0D', '\uFF0B', '\u2014', '\u2013').Trim();
+        return SanitizeFolderName(work);
     }
 
     private static readonly object _boxLock = new();
