@@ -20,12 +20,16 @@ public partial class MainForm : Form
         var sharedLogsDir = GetSharedLogsDir();
         var fetchLogPathShared = Path.Combine(sharedLogsDir, $"fetch_{runId}.log");
         var fetchLogLatestShared = Path.Combine(sharedLogsDir, "fetch_latest.log");
+        var emergencyLogsDir = GetEmergencyLogsDir();
+        var fetchLogPathEmergency = Path.Combine(emergencyLogsDir, $"fetch_{runId}.log");
+        var fetchLogLatestEmergency = Path.Combine(emergencyLogsDir, "fetch_latest.log");
         var fetchLogs = new List<string>
         {
             $"run_id={runId}",
             $"started_at={DateTime.Now:yyyy-MM-dd HH:mm:ss.fff}",
             $"export_dir={exportDir}",
-            $"shared_logs_dir={sharedLogsDir}"
+            $"shared_logs_dir={sharedLogsDir}",
+            $"emergency_logs_dir={emergencyLogsDir}"
         };
 
         int fileCount = 0;
@@ -58,7 +62,7 @@ public partial class MainForm : Form
 
         fetchLogs.Add($"finished_at={DateTime.Now:yyyy-MM-dd HH:mm:ss.fff}");
         fetchLogs.Add($"summary\tfiles={fileCount}\ttitles={totalTitles}");
-        WriteLogCopies(fetchLogs, fetchLogPath, fetchLogPathShared, fetchLogLatestShared);
+        WriteLogCopies(fetchLogs, fetchLogPath, fetchLogPathShared, fetchLogLatestShared, fetchLogPathEmergency, fetchLogLatestEmergency);
 
         SetStatus($"曲リスト取得完了（{fileCount} 件 / {totalTitles} 曲）", showProgress: false);
         return (fileCount, totalTitles);
@@ -124,6 +128,12 @@ public partial class MainForm : Form
         try
         {
             var runId = DateTime.Now.ToString("yyyyMMdd_HHmmss");
+            TryWriteEmergencyLog($"run_{runId}_started.log", new[]
+            {
+                $"run_id={runId}",
+                $"started_at={DateTime.Now:yyyy-MM-dd HH:mm:ss.fff}",
+                $"exe={Application.ExecutablePath}"
+            });
             await ExportSongListsAsync(runId);
 
             SetStatus("Songs フォルダへコピー中…", showProgress: true, progressStyle: ProgressBarStyle.Marquee);
@@ -157,9 +167,14 @@ public partial class MainForm : Form
         var sharedLogsDir = GetSharedLogsDir();
         var organizeLogPathShared = Path.Combine(sharedLogsDir, $"organize_{runId}.log");
         var organizeLogLatestShared = Path.Combine(sharedLogsDir, "organize_latest.log");
+        var emergencyLogsDir = GetEmergencyLogsDir();
+        var organizeLogPathEmergency = Path.Combine(emergencyLogsDir, $"organize_{runId}.log");
+        var organizeLogLatestEmergency = Path.Combine(emergencyLogsDir, "organize_latest.log");
         var unmatchedLogPath = Path.Combine(exportDir, "log.txt");
         var unmatchedLogPathShared = Path.Combine(sharedLogsDir, $"unmatched_{runId}.log");
         var unmatchedLogLatestShared = Path.Combine(sharedLogsDir, "unmatched_latest.log");
+        var unmatchedLogPathEmergency = Path.Combine(emergencyLogsDir, $"unmatched_{runId}.log");
+        var unmatchedLogLatestEmergency = Path.Combine(emergencyLogsDir, "unmatched_latest.log");
         var detailLogs = new List<string>
         {
             $"run_id={runId}",
@@ -167,7 +182,8 @@ public partial class MainForm : Form
             $"temp_songs_dir={tempSongsDir}",
             $"dest_root_dir={destRootDir}",
             $"resolved_songs_root={songsRoot}",
-            $"shared_logs_dir={sharedLogsDir}"
+            $"shared_logs_dir={sharedLogsDir}",
+            $"emergency_logs_dir={emergencyLogsDir}"
         };
 
         int totalCopied = 0;
@@ -337,14 +353,27 @@ public partial class MainForm : Form
 
         detailLogs.Add($"finished_at={DateTime.Now:yyyy-MM-dd HH:mm:ss.fff}");
         detailLogs.Add($"summary\tcopied={totalCopied}\tskipped={totalSkipped}\tunmatched={totalUnmatched}");
-        WriteLogCopies(detailLogs, organizeLogPath, organizeLogPathShared, organizeLogLatestShared);
+        WriteLogCopies(
+            detailLogs,
+            organizeLogPath, organizeLogPathShared, organizeLogLatestShared,
+            organizeLogPathEmergency, organizeLogLatestEmergency);
 
         if (unmatchedLogs.Count > 0)
         {
-            WriteLogCopies(unmatchedLogs, unmatchedLogPath, unmatchedLogPathShared, unmatchedLogLatestShared);
+            WriteLogCopies(
+                unmatchedLogs,
+                unmatchedLogPath, unmatchedLogPathShared, unmatchedLogLatestShared,
+                unmatchedLogPathEmergency, unmatchedLogLatestEmergency);
+        }
+        else
+        {
+            WriteLogCopies(
+                new[] { "[NO_UNMATCHED]" },
+                unmatchedLogPath, unmatchedLogPathShared, unmatchedLogLatestShared,
+                unmatchedLogPathEmergency, unmatchedLogLatestEmergency);
         }
 
-        return $"コピー完了: {totalCopied} 曲 / 既設: {totalSkipped} 曲 (未マッチ {totalUnmatched} 件 / ログ: {organizeLogPathShared})";
+        return $"コピー完了: {totalCopied} 曲 / 既設: {totalSkipped} 曲 (未マッチ {totalUnmatched} 件 / ログ: {organizeLogLatestEmergency})";
     }
 
     static string ToHex(string s) => string.Join("", s.Select(c => $"{(int)c:X4}"));
@@ -359,8 +388,17 @@ public partial class MainForm : Form
         return dir;
     }
 
+    static string GetEmergencyLogsDir()
+    {
+        var dir = Path.Combine(Path.GetTempPath(), "SongSorterAppLogs");
+        Directory.CreateDirectory(dir);
+        return dir;
+    }
+
     static void WriteLogCopies(IEnumerable<string> lines, params string[] paths)
     {
+        var content = lines.ToArray();
+        var errors = new List<string>();
         foreach (var path in paths.Where(p => !string.IsNullOrWhiteSpace(p)).Distinct(StringComparer.OrdinalIgnoreCase))
         {
             try
@@ -368,12 +406,29 @@ public partial class MainForm : Form
                 var parent = Path.GetDirectoryName(path);
                 if (!string.IsNullOrWhiteSpace(parent))
                     Directory.CreateDirectory(parent);
-                File.WriteAllLines(path, lines, Encoding.UTF8);
+                File.WriteAllLines(path, content, Encoding.UTF8);
             }
-            catch
+            catch (Exception ex)
             {
-                // ログ書き込み失敗は本処理を止めない
+                errors.Add($"{DateTime.Now:yyyy-MM-dd HH:mm:ss.fff}\t{path}\t{ex.GetType().Name}\t{ex.Message}");
             }
+        }
+
+        if (errors.Count > 0)
+            TryWriteEmergencyLog("log_write_failures.log", errors);
+    }
+
+    static void TryWriteEmergencyLog(string fileName, IEnumerable<string> lines)
+    {
+        try
+        {
+            var dir = GetEmergencyLogsDir();
+            var path = Path.Combine(dir, fileName);
+            File.AppendAllLines(path, lines, Encoding.UTF8);
+        }
+        catch
+        {
+            // 最終フォールバックも失敗した場合は何もしない
         }
     }
 
