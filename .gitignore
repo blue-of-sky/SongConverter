@@ -1,0 +1,8 @@
+# .gitignore for C# projects
+[Bb]in/
+[Oo]bj/
+.vs/
+*.user
+*.suo
+*.userosscache
+*.sln.docstates
