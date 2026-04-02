@@ -6,3 +6,9 @@
 *.suo
 *.userosscache
 *.sln.docstates
+
+# Installer
+Installer/
+
+# Scripts
+*.ps1
