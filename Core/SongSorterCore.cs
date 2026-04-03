@@ -75,7 +75,7 @@ public static class SongSorterCore
             new { Category = "00 ポップス",           Source = "01 Pop",               Dest = "00 ポップス",           Export = "pops.php",      BoxTitle = "ポップス",           BoxGenre = "ポップス",           BoxExplanation = "ポップスの曲をあつめたよ!" },
             new { Category = "01 キッズ",             Source = "04 Children and Folk", Dest = "01 キッズ",             Export = "kids.php",      BoxTitle = "キッズ",             BoxGenre = "キッズ",             BoxExplanation = "キッズの曲をあつめたよ!" },
             new { Category = "02 アニメ",             Source = "02 Anime",             Dest = "02 アニメ",             Export = "anime.php",     BoxTitle = "アニメ",             BoxGenre = "アニメ",             BoxExplanation = "アニメの曲をあつめたよ!" },
-            new { Category = "03 ボーカロイド™曲",    Source = "03 Vocaloid",          Dest = "03 ボーカロイド™曲",    Export = "vocaloid.php",  BoxTitle = "ボーカロイド™曲",   BoxGenre = "ボーカロイド™曲",     BoxExplanation = "ボーカロイド™の曲をあつめたよ!" },
+            new { Category = "03 ボーカロイド™曲",    Source = "03 Vocaloid",          Dest = "03 ボーカロイド™曲",    Export = "vocaloid.php",  BoxTitle = "ボーカロイド™曲",   BoxGenre = "ボーカロイド",        BoxExplanation = "ボーカロイド™の曲をあつめたよ!" },
             new { Category = "04 ゲームミュージック", Source = "07 Game Music",        Dest = "04 ゲームミュージック", Export = "game.php",      BoxTitle = "ゲームミュージック", BoxGenre = "ゲームミュージック", BoxExplanation = "ゲームミュージックの曲をあつめたよ!" },
             new { Category = "05 バラエティ",         Source = "05 Variety",           Dest = "05 バラエティ",         Export = "variety.php",   BoxTitle = "バラエティ",         BoxGenre = "バラエティ",         BoxExplanation = "バラエティの曲をあつめたよ!" },
             new { Category = "06 クラシック",         Source = "06 Classical",         Dest = "06 クラシック",         Export = "classic.php",   BoxTitle = "クラシック",         BoxGenre = "クラシック",         BoxExplanation = "クラシックの曲をあつめたよ!" },
@@ -605,11 +605,8 @@ public static class SongSorterCore
     private static void EnsureBoxDef(string dir, string title, string genre, string explanation)
     {
         var path = Path.Combine(dir, "box.def");
-        if (File.Exists(path)) return;
-
         lock (BoxDefLock)
         {
-            if (File.Exists(path)) return;
             Directory.CreateDirectory(dir);
             File.WriteAllLines(path, new[] { "#TITLE:" + title, "#GENRE:" + genre, "#EXPLANATION:" + explanation, "#BGCOLOR:#ff0000", "#TEXTCOLOR:#ffffff" });
         }
