@@ -513,6 +513,9 @@ public static class SongSorterCore
                     else if (trim.StartsWith("SUBTITLEJA:", StringComparison.OrdinalIgnoreCase)) subJa = trim["SUBTITLEJA:".Length..].Trim();
                     else if (trim.StartsWith("SUBTITLE:", StringComparison.OrdinalIgnoreCase)) sub = trim["SUBTITLE:".Length..].Trim();
                 }
+
+                if (subJa != null && subJa.Contains("旧譜面")) return null;
+
                 var resT = titleJa ?? title;
                 if (resT == null) return null;
                 var resSub = subJa ?? sub ?? "";

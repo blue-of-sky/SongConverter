@@ -651,12 +651,12 @@ public partial class MainForm : Form
 
     private Task RunGitCloneAsync(string workingDir, CancellationToken ct)
     {
-        return RunGitCommandAsync(workingDir, "clone https://ese.tjadataba.se/ESE/ESE.git Songs", ct);
+        return RunGitCommandAsync(workingDir, "clone --progress https://ese.tjadataba.se/ESE/ESE.git Songs", ct);
     }
 
     private Task RunGitPullAsync(string workingDir, CancellationToken ct)
     {
-        return RunGitCommandAsync(workingDir, "-C Songs pull --ff-only", ct);
+        return RunGitCommandAsync(workingDir, "-C Songs pull --progress --ff-only", ct);
     }
 
     private async Task RunGitCommandAsync(string workingDir, string arguments, CancellationToken ct)
@@ -669,16 +669,19 @@ public partial class MainForm : Form
         process.StartInfo.RedirectStandardError = true;
         process.StartInfo.UseShellExecute = false;
         process.StartInfo.CreateNoWindow = true;
-        process.StartInfo.StandardOutputEncoding = Encoding.Default;
-        process.StartInfo.StandardErrorEncoding = Encoding.Default;
+        process.StartInfo.StandardOutputEncoding = Encoding.UTF8;
+        process.StartInfo.StandardErrorEncoding = Encoding.UTF8;
+        
+        // パスワード入力を促してハングするのを防ぐ
+        process.StartInfo.EnvironmentVariables["GIT_TERMINAL_PROMPT"] = "0";
 
         process.OutputDataReceived += (s, e) =>
         {
-            if (!string.IsNullOrWhiteSpace(e.Data)) Log(e.Data);
+            if (!string.IsNullOrWhiteSpace(e.Data)) Log(e.Data.Trim());
         };
         process.ErrorDataReceived += (s, e) =>
         {
-            if (!string.IsNullOrWhiteSpace(e.Data)) Log(e.Data);
+            if (!string.IsNullOrWhiteSpace(e.Data)) Log(e.Data.Trim());
         };
 
         process.Start();
