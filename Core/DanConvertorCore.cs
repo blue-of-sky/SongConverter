@@ -70,6 +70,13 @@ public class DanConvertorCore
             {
                 File.Copy(localTja, Path.Combine(outputDir, targetTjaName), true);
                 File.Copy(localMusic, Path.Combine(outputDir, section.Wave), true);
+
+                string localDanPlate = Path.Combine(localDir, "Dan_Plate.png");
+                if (File.Exists(localDanPlate))
+                {
+                    File.Copy(localDanPlate, Path.Combine(outputDir, "Plate.png"), true);
+                }
+
                 finalSongs.Add(new DanSong { path = targetTjaName, genre = section.Genre, difficulty = 3 });
                 logAction?.Invoke($"  選択フォルダから反映: {section.Title}");
                 processed = true;
@@ -120,6 +127,12 @@ public class DanConvertorCore
                 else
                 {
                     logAction?.Invoke($"  警告: 音源が見つかりませんでした (要確認): {section.Title}");
+                }
+
+                string danPlateFallback = Path.Combine(localDir, "Dan_Plate.png");
+                if (File.Exists(danPlateFallback))
+                {
+                    File.Copy(danPlateFallback, Path.Combine(outputDir, "Plate.png"), true);
                 }
 
                 finalSongs.Add(new DanSong { path = targetTjaName, genre = section.Genre, difficulty = 3 });

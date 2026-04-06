@@ -59,8 +59,9 @@ public static class SongSorterCore
         if (!Directory.Exists(exportDir))
             throw new InvalidOperationException("Export フォルダーが見つかりません。先に「譜面リスト更新」を実行してください。");
 
-        if (!Directory.Exists(tempSongsDir))
-            throw new DirectoryNotFoundException("TempSongs フォルダーが見つかりません: " + tempSongsDir);
+        var resolvedTempSongsDir = ResolveSongsRoot(tempSongsDir);
+        if (!Directory.Exists(resolvedTempSongsDir))
+            throw new DirectoryNotFoundException("TempSongs フォルダーが見つかりません: " + resolvedTempSongsDir);
 
         var songsRoot = ResolveSongsRoot(destRootDir);
         Directory.CreateDirectory(songsRoot);
@@ -92,7 +93,7 @@ public static class SongSorterCore
 
         var totalFolders = activeSourceMappings.Sum(m =>
         {
-            var srcPath = Path.Combine(tempSongsDir, m.Source);
+            var srcPath = Path.Combine(resolvedTempSongsDir, m.Source);
             return Directory.Exists(srcPath) ? Directory.GetFiles(srcPath, "*.tja", SearchOption.AllDirectories).Select(f => Path.GetDirectoryName(f)!).Distinct().Count() : 0;
         });
 
@@ -111,7 +112,7 @@ public static class SongSorterCore
         {
             ct.ThrowIfCancellationRequested();
 
-            var srcCatDir = Path.Combine(tempSongsDir, sourceMap.Source);
+            var srcCatDir = Path.Combine(resolvedTempSongsDir, sourceMap.Source);
             if (!Directory.Exists(srcCatDir)) continue;
 
             var tjaFiles = Directory.GetFiles(srcCatDir, "*.tja", SearchOption.AllDirectories);
