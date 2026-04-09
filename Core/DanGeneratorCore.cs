@@ -135,7 +135,7 @@ public class DanGeneratorCore
                             else if (txt.Contains("良")) colMap[colOffset] = "Great";
                             else if (txt.Contains("可")) colMap[colOffset] = "Good";
                             else if (txt.Contains("連打数")) colMap[colOffset] = "Roll";
-                            else if (txt.Contains("たたけた数") || txt.Contains("叩けた数")) colMap[colOffset] = "Hit";
+                            else if (txt.Contains("たたけた数") || txt.Contains("叩けた数")) colMap[colOffset] = "HitCount";
                             else if (txt.Contains("コンボ") || txt.Contains("最大コンボ数")) colMap[colOffset] = "MaxCombo";
                             else if (txt.Contains("最低スコア") || txt.Contains("スコア")) colMap[colOffset] = "Score";
                             colOffset += cs;
