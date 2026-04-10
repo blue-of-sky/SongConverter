@@ -108,6 +108,28 @@ public static class SongSorterCore
             CancellationToken = ct
         };
 
+        // 各カテゴリの出力先フォルダを事前にクリーンアップ（番号付きフォルダのみ削除）
+        foreach (var sourceMap in activeSourceMappings)
+        {
+            var dstGenreDir = Path.Combine(songsRoot, sourceMap.Dest);
+            if (Directory.Exists(dstGenreDir))
+            {
+                try
+                {
+                    foreach (var dir in Directory.GetDirectories(dstGenreDir))
+                    {
+                        var name = Path.GetFileName(dir);
+                        // 番号付きフォルダ（001, 002...）のみ削除
+                        if (name.Length >= 3 && char.IsDigit(name[0]) && char.IsDigit(name[1]) && char.IsDigit(name[2]))
+                        {
+                            Directory.Delete(dir, true);
+                        }
+                    }
+                }
+                catch { /* 削除に失敗しても処理を続行 */ }
+            }
+        }
+
         foreach (var sourceMap in activeSourceMappings)
         {
             ct.ThrowIfCancellationRequested();
