@@ -295,6 +295,6 @@ public class DanConvertorCore
     }
 
     private class ConditionGauge { public int red { get; set; } public int gold { get; set; } }
-    private class Condition { public string type { get; set; } = ""; public List<Threshold> threshold { get; set; } = new(); public bool more { get; set; } = true; }
+    private class Condition { public string type { get; set; } = ""; public List<Threshold> threshold { get; set; } = new(); public bool more { get; set; } = true; public bool ShouldSerializemore() => more; }
     private class Threshold { public int red { get; set; } public int gold { get; set; } }
 }
