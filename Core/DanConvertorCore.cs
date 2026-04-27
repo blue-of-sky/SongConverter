@@ -245,13 +245,11 @@ public class DanConvertorCore
         if (parts.Length < 3) return;
         string typeCode = parts[0].Trim().ToLower();
         if (!int.TryParse(parts[1], out int red) || !int.TryParse(parts[2], out int gold)) return;
-        bool more = true;
-        if (parts.Length >= 4) { if (parts[3].Trim().ToLower() == "l") more = false; } else if (typeCode == "jb") more = false;
         if (typeCode == "g" && root != null) root.conditionGauge = new ConditionGauge { red = red, gold = gold };
         else
         {
             string typeName = typeCode switch { "jp" => "Perfect", "jg" => "Good", "jb" => "Miss", "s" => "Score", "r" => "Roll", "h" => "Hit", "c" => "Combo", _ => "Other" };
-            targetList.Add(new Condition { type = typeName, threshold = new List<Threshold> { new Threshold { red = red, gold = gold } }, more = more });
+            targetList.Add(new Condition { type = typeName, threshold = new List<Threshold> { new Threshold { red = red, gold = gold } } });
         }
     }
 
@@ -295,6 +293,6 @@ public class DanConvertorCore
     }
 
     private class ConditionGauge { public int red { get; set; } public int gold { get; set; } }
-    private class Condition { public string type { get; set; } = ""; public List<Threshold> threshold { get; set; } = new(); public bool more { get; set; } = true; public bool ShouldSerializemore() => more; }
+    private class Condition { public string type { get; set; } = ""; public List<Threshold> threshold { get; set; } = new(); }
     private class Threshold { public int red { get; set; } public int gold { get; set; } }
 }
