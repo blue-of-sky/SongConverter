@@ -33,7 +33,7 @@ public class DanConvertorCore
         string? courseTitle = globalMeta.GetValueOrDefault("TITLE") ?? tjaFileName;
         logAction?.Invoke($"分割優先変換を開始: {courseTitle} -> {outputDir}");
 
-        var danJson = new DanJson { title = courseTitle };
+        var danJson = new DanJson { title = courseTitle, danIndex = 18 };
         foreach (var line in lines)
         {
             if (line.StartsWith("#NEXTSONG", StringComparison.OrdinalIgnoreCase)) break;
@@ -42,10 +42,6 @@ public class DanConvertorCore
             {
                 var match = Regex.Match(trimmed, @"^EXAM\d*:\s*(.*)$", RegexOptions.IgnoreCase);
                 if (match.Success) ParseExam(match.Groups[1].Value, danJson.conditions, danJson);
-            }
-            else if (trimmed.StartsWith("DANTICK:", StringComparison.OrdinalIgnoreCase))
-            {
-                if (int.TryParse(trimmed.Substring(8).Trim(), out int idx)) danJson.danIndex = idx;
             }
         }
 
@@ -248,7 +244,7 @@ public class DanConvertorCore
         if (typeCode == "g" && root != null) root.conditionGauge = new ConditionGauge { red = red, gold = gold };
         else
         {
-            string typeName = typeCode switch { "jp" => "Perfect", "jg" => "Good", "jb" => "Miss", "s" => "Score", "r" => "Roll", "h" => "Hit", "c" => "Combo", _ => "Other" };
+            string typeName = typeCode switch { "jp" => "Great", "jg" => "Good", "jb" => "Miss", "s" => "Score", "r" => "Roll", "h" => "Hit", "c" => "Combo", _ => "Other" };
             targetList.Add(new Condition { type = typeName, threshold = new List<Threshold> { new Threshold { red = red, gold = gold } } });
         }
     }
